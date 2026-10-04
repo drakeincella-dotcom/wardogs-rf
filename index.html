@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wardogs Range Calculator</title>
+<meta name="description" content="Straight-line range between two grid positions.">
+<meta name="theme-color" content="#5d6b2f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wardogs Range">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one field-card, inputs for two grid positions on top, the range readout below, a small plot of the two points beside it */
+:root {
+  --bg: #e9ebe2;
+  --panel: #f6f7f1;
+  --ink: #1f2419;
+  --muted: #5e6654;
+  --line: #c4c9b6;
+  --accent: #5d6b2f;
+  --accent-ink: #f6f7f1;
+  --warn: #9a5b12;
+  --warn-bg: #f3e6cf;
+  --grid: #d6dacb;
+  --font-display: "Saira Stencil One", "Impact", "Arial Narrow", sans-serif;
+  --font-body: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161a12; --panel: #20251b; --ink: #e4e8d8; --muted: #9aa38a; --line: #3a4230;
+    --accent: #a9bb5e; --accent-ink: #161a12; --warn: #e3a756; --warn-bg: #3a2c16; --grid: #2c3324;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161a12; --panel: #20251b; --ink: #e4e8d8; --muted: #9aa38a; --line: #3a4230;
+  --accent: #a9bb5e; --accent-ink: #161a12; --warn: #e3a756; --warn-bg: #3a2c16; --grid: #2c3324;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 18px; line-height: 1.4;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: grid; gap: 4px; }
+h1 {
+  font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 7vw, 44px);
+  letter-spacing: 0.02em; margin: 0; line-height: 1; text-wrap: balance;
+}
+.sub { color: var(--muted); margin: 0; font-size: 17px; }
+.formula { font-family: var(--font-data); font-size: 14px; color: var(--muted); }
+
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 20px; display: grid; gap: 18px;
+}
+.points { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+legend {
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 14px;
+  color: var(--muted); padding: 0; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.a { background: var(--accent); }
+.dot.b { background: var(--warn); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; min-width: 0; }
+input {
+  font-family: var(--font-data); font-size: 20px; font-variant-numeric: tabular-nums;
+  width: 100%; min-width: 0; padding: 10px 12px; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+input.fixed { border-color: var(--warn); }
+
+.result { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 20px; align-items: center; border-top: 1px dashed var(--line); padding-top: 18px; }
+.readout { display: grid; gap: 6px; min-width: 0; }
+.readout .label { text-transform: uppercase; letter-spacing: 0.12em; font-size: 14px; color: var(--muted); font-weight: 600; }
+.range {
+  font-family: var(--font-data); font-weight: 600; font-size: clamp(40px, 11vw, 64px);
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--accent); overflow-wrap: anywhere;
+}
+.range.empty { color: var(--muted); }
+.work { font-family: var(--font-data); font-size: 13px; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+.note {
+  background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 8px 12px;
+  font-size: 16px;
+}
+svg.plot { width: 100%; max-width: 200px; height: auto; display: block; justify-self: end; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button {
+  font-family: var(--font-body); font-size: 17px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 9px 16px; border-radius: 4px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.dp { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; }
+.dp select { font-family: var(--font-data); font-size: 15px; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+
+@media (max-width: 560px) {
+  .points { grid-template-columns: 1fr; }
+  .result { grid-template-columns: 1fr; }
+  svg.plot { justify-self: center; max-width: 220px; }
+  .dp { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wardogs Range Calculator</h1>
+    <p class="sub">Enter two grid positions to get the straight-line range between them.</p>
+    <span class="formula">range = √((X2 − X1)² + (Y2 − Y1)²)</span>
+  </header>
+
+  <form class="card" id="calc" autocomplete="off" novalidate>
+    <div class="points">
+      <fieldset>
+        <legend><span class="dot a"></span>Position 1</legend>
+        <div class="pair">
+          <label for="x1">X1<input id="x1" inputmode="decimal" value="120"></label>
+          <label for="y1">Y1<input id="y1" inputmode="decimal" value="45"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend><span class="dot b"></span>Position 2</legend>
+        <div class="pair">
+          <label for="x2">X2<input id="x2" inputmode="decimal" value="380"></label>
+          <label for="y2">Y2<input id="y2" inputmode="decimal" value="210"></label>
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="result">
+      <div class="readout" aria-live="polite">
+        <span class="label">Range</span>
+        <div class="range" id="range">–</div>
+        <div class="work" id="work"></div>
+        <div class="note" id="note" hidden></div>
+      </div>
+      <svg class="plot" id="plot" viewBox="0 0 200 200" role="img" aria-label="Plot of the two positions"></svg>
+    </div>
+
+    <div class="controls">
+      <button type="button" class="primary" id="swap">Swap positions</button>
+      <button type="button" id="clear">Clear</button>
+      <label class="dp" for="decimals">Decimals
+        <select id="decimals">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+        </select>
+      </label>
+    </div>
+  </form>
+</div>
+
+<script>
+const ids = ["x1", "y1", "x2", "y2"];
+const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+const rangeEl = document.getElementById("range");
+const workEl = document.getElementById("work");
+const noteEl = document.getElementById("note");
+const plot = document.getElementById("plot");
+const decimalsEl = document.getElementById("decimals");
+
+// Negative values are treated as positive, per the brief.
+function readValue(input) {
+  const raw = input.value.trim().replace(",", ".");
+  if (raw === "" || raw === "-" || raw === ".") return { value: null, flipped: false };
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return { value: NaN, flipped: false };
+  return { value: Math.abs(n), flipped: n < 0 };
+}
+
+function range(x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function fmt(n, dp) {
+  return Number(n.toFixed(dp)).toLocaleString(undefined, { maximumFractionDigits: dp, minimumFractionDigits: 0 });
+}
+
+function drawPlot(p) {
+  const NS = "http://www.w3.org/2000/svg";
+  plot.innerHTML = "";
+  const pad = 22, size = 200, inner = size - pad * 2;
+  const g = (tag, attrs) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); plot.appendChild(n); return n; };
+  for (let i = 0; i <= 4; i++) {
+    const t = pad + (inner * i) / 4;
+    g("line", { x1: pad, y1: t, x2: size - pad, y2: t, stroke: "var(--grid)", "stroke-width": 1 });
+    g("line", { x1: t, y1: pad, x2: t, y2: size - pad, stroke: "var(--grid)", "stroke-width": 1 });
+  }
+  if (!p) return;
+  const minX = Math.min(p.x1, p.x2), maxX = Math.max(p.x1, p.x2);
+  const minY = Math.min(p.y1, p.y2), maxY = Math.max(p.y1, p.y2);
+  const span = Math.max(maxX - minX, maxY - minY) || 1;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const sx = v => size / 2 + ((v - cx) / span) * inner;
+  const sy = v => size / 2 - ((v - cy) / span) * inner; // Y increases upward
+  const a = [sx(p.x1), sy(p.y1)], b = [sx(p.x2), sy(p.y2)];
+  g("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: "var(--ink)", "stroke-width": 1.5, "stroke-dasharray": "5 4" });
+  g("circle", { cx: a[0], cy: a[1], r: 6, fill: "var(--accent)" });
+  g("circle", { cx: b[0], cy: b[1], r: 6, fill: "var(--warn)" });
+}
+
+function update() {
+  const vals = {}, flipped = [];
+  let missing = false, bad = false;
+  for (const id of ids) {
+    const r = readValue(el[id]);
+    el[id].classList.toggle("fixed", r.flipped);
+    if (r.flipped) flipped.push(id.toUpperCase());
+    if (r.value === null) missing = true;
+    else if (Number.isNaN(r.value)) bad = true;
+    vals[id] = r.value;
+  }
+
+  noteEl.hidden = flipped.length === 0;
+  noteEl.textContent = flipped.length
+    ? `Negative ${flipped.length === 1 ? "value" : "values"} in ${flipped.join(", ")} treated as positive.`
+    : "";
+
+  if (bad) {
+    rangeEl.textContent = "–"; rangeEl.classList.add("empty");
+    workEl.textContent = "Use numbers only, for example 120 or 45.5.";
+    drawPlot(null); return;
+  }
+  if (missing) {
+    rangeEl.textContent = "–"; rangeEl.classList.add("empty");
+    workEl.textContent = "Fill in all four values to get the range.";
+    drawPlot(null); return;
+  }
+
+  const dp = Number(decimalsEl.value);
+  const { x1, y1, x2, y2 } = vals;
+  const dx = x2 - x1, dy = y2 - y1;
+  const r = range(x1, y1, x2, y2);
+  rangeEl.textContent = fmt(r, dp);
+  rangeEl.classList.remove("empty");
+  workEl.innerHTML =
+    `ΔX = ${fmt(x2, 4)} − ${fmt(x1, 4)} = ${fmt(dx, 4)} → ΔX² = ${fmt(dx * dx, 4)}<br>` +
+    `ΔY = ${fmt(y2, 4)} − ${fmt(y1, 4)} = ${fmt(dy, 4)} → ΔY² = ${fmt(dy * dy, 4)}<br>` +
+    `√(${fmt(dx * dx, 4)} + ${fmt(dy * dy, 4)}) = ${fmt(r, 4)}`;
+  drawPlot(vals);
+}
+
+ids.forEach(id => el[id].addEventListener("input", update));
+decimalsEl.addEventListener("change", update);
+document.getElementById("calc").addEventListener("submit", e => e.preventDefault());
+document.getElementById("swap").addEventListener("click", () => {
+  [el.x1.value, el.x2.value] = [el.x2.value, el.x1.value];
+  [el.y1.value, el.y2.value] = [el.y2.value, el.y1.value];
+  update();
+});
+document.getElementById("clear").addEventListener("click", () => {
+  ids.forEach(id => (el[id].value = ""));
+  update();
+  el.x1.focus();
+});
+
+update();
+
+// Register the service worker so the app installs and works offline.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
