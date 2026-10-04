@@ -126,7 +126,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   <header>
     <h1>Wardogs Range Calculator</h1>
     <p class="sub">Enter two grid positions to get the straight-line range between them.</p>
-    <span class="formula">range = √((X2 − X1)² + (Y2 − Y1)²) × 100</span>
+    <span class="formula">range = √((X2 − X1)² + (Y2 − Y1)²)</span>
   </header>
 
   <form class="card" id="calc" autocomplete="off" novalidate>
@@ -253,15 +253,13 @@ function update() {
   const dp = Number(decimalsEl.value);
   const { x1, y1, x2, y2 } = vals;
   const dx = x2 - x1, dy = y2 - y1;
-  const dist = range(x1, y1, x2, y2);
-  const r = dist * 100;
+  const r = range(x1, y1, x2, y2);
   rangeEl.textContent = fmt(r, dp);
   rangeEl.classList.remove("empty");
   workEl.innerHTML =
     `ΔX = ${fmt(x2, 4)} − ${fmt(x1, 4)} = ${fmt(dx, 4)} → ΔX² = ${fmt(dx * dx, 4)}<br>` +
     `ΔY = ${fmt(y2, 4)} − ${fmt(y1, 4)} = ${fmt(dy, 4)} → ΔY² = ${fmt(dy * dy, 4)}<br>` +
-    `√(${fmt(dx * dx, 4)} + ${fmt(dy * dy, 4)}) = ${fmt(dist, 4)}<br>` +
-    `${fmt(dist, 4)} × 100 = ${fmt(r, 4)}`;
+    `√(${fmt(dx * dx, 4)} + ${fmt(dy * dy, 4)}) = ${fmt(r, 4)}`;
   drawPlot(vals);
 }
 
